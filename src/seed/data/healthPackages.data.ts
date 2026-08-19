@@ -7,29 +7,124 @@ export interface HealthPackageSeed {
   categoryOrder: number;
   localName: string;
   tier?: string;
+  tierLocal?: string;
   tierOrder: number;
   popular?: boolean;
   price: number;
   description: string;
   inclusions: string[];
+  inclusionsLocal: string[];
   idealFor: string[];
   status: ContentStatus;
 }
 
 /**
  * Sourced from the Devaki Speciality Hospital "Master Health Checkup"
- * brochure (health-packages.pdf). Prices and test lists are transcribed
- * verbatim; keep this file in sync if the hospital revises the brochure.
+ * brochure (health-packages.pdf). Category names, prices, and test lists
+ * are transcribed verbatim — including the brochure's own "Executive Whole
+ * Body" naming for category 2 (distinct from the plainer "Whole Body" label
+ * used only in its summary price table). Keep this file in sync if the
+ * hospital revises the brochure.
  */
+
+// English -> Tamil test/service name, as printed in the brochure. Shared
+// across categories since most tests repeat (e.g. "ECG" appears in nearly
+// every package) — translate once here rather than per package.
+const TEST_NAME_TA: Record<string, string> = {
+  Hemoglobin: "ஹீமோகுளோபின்",
+  "Random Blood Sugar": "இரத்த சர்க்கரை அளவு",
+  "Total Cholesterol": "மொத்த கொழுப்பு அளவு",
+  Creatinine: "கிரியேட்டினின் அளவு",
+  ECG: "ஈசிஜி",
+  "General Consultation": "மருத்துவர் ஆலோசனை",
+  "Total Bilirubin": "மொத்த பிலிரூபின் அளவு",
+  "Urine Routine Analysis": "சிறுநீர் முழுமையான பரிசோதனை",
+  "Complete Hemogram": "முழுமையான இரத்த அணுப் பரிசோதனை",
+  "Fasting Blood Sugar": "உணவுக்கு முன் இரத்த சர்க்கரை அளவு",
+  "Post Prandial Blood Sugar": "உணவுக்குப் பின் இரத்த சர்க்கரை அளவு",
+  "Urea / Creatinine": "யூரியா / கிரியேட்டினின்",
+  "X-Ray Chest": "எக்ஸ்-ரே நெஞ்சு பகுதி",
+  "Chest X-Ray": "எக்ஸ்-ரே நெஞ்சு பகுதி",
+  "USG (Abdomen & Pelvis)": "அல்ட்ராசவுண்ட் ஸ்கேன் (வயிற்று பகுதி)",
+  HbA1c: "கடந்த 3 மாத சராசரி சர்க்கரை அளவு",
+  "Kidney Function Test": "சிறுநீரக செயல்பாடு பரிசோதனை",
+  "Bilirubin (T/D/I)": "பிலிரூபின் பரிசோதனை (T/D/I)",
+  "Urine Complete Analysis": "சிறுநீர் முழுமையான பரிசோதனை",
+  "Lipid Profile": "கொழுப்புகள் அளவிடும் பரிசோதனை",
+  ECHO: "எக்கோ",
+  "Dietary Advice": "உணவு முறை ஆலோசனை",
+  ESR: "ESR பரிசோதனை",
+  "Liver Function Test": "கல்லீரல் செயல்பாடு பரிசோதனை",
+  Electrolytes: "எலக்ட்ரோலைட்டுகள்",
+  "Thyroid Function Test": "தைராய்டு செயல்பாடு பரிசோதனை",
+  "Stool Examination": "மல பரிசோதனை",
+  "Pulmonary Function Test": "நுரையீரல் செயல்பாடு பரிசோதனை",
+  "Blood Group & Rh Typing": "இரத்த வகை மற்றும் Rh typing பரிசோதனை",
+  Calcium: "கால்சியம்",
+  Phosphorus: "பாஸ்பரஸ்",
+  "Vitamin D3": "வைட்டமின் D3",
+  "RA Factor": "முடக்கு வாதக் காரணி",
+  "C-Reactive Protein (CRP)": "C-ரியாக்டிவ் புரோட்டீன் (CRP)",
+  "HBsAg / HCV / VDRL / HIV": "நோய் தொற்றுகள் பரிசோதனை (HBsAg/HCV/VDRL/HIV)",
+  "Tread Mill Test (TMT)*": "டிரெட்மில் பரிசோதனை (TMT)*",
+  "Urine Micro Albumin": "சிறுநீர் மைக்ரோ அல்புமின் பரிசோதனை",
+  Iron: "இரும்புச் சத்தின் அளவு",
+  "PAP Smear*": "பாப் ஸ்மியர்*",
+  "Mammogram (>40 years)*": "மேமோகிராம் (>40 வயது)*",
+  "USG Breast Screening": "அல்ட்ரா சவுண்ட் ஸ்கேன் (மார்பகம்)",
+  "USG Breast Screening*": "அல்ட்ரா சவுண்ட் ஸ்கேன் (மார்பகம்)*",
+  "Vitamin B12": "வைட்டமின் B12",
+  "Peripheral Blood Smear": "இரத்த ஸ்மியர் பரிசோதனை",
+  "Prostate-Specific Antigen (PSA)*": "புரோஸ்டேட்-குறிப்பிட்ட ஆன்டிஜென் (PSA)*",
+  "Serum Electrolytes": "சீரம் எலக்ட்ரோலைட்டுகள்",
+  SGOT: "எஸ்ஜிஓடி (SGOT)",
+  SGPT: "எஸ்ஜிபிடி (SGPT)",
+  HIV: "எச்.ஐ.வி (HIV)",
+  HBsAg: "ஹெபடைடிஸ் பி (HBsAg)",
+  HCV: "ஹெபடைடிஸ் சி (HCV)",
+  VDRL: "விடிஆர்எல் (VDRL)",
+  "Mantoux Test": "காசநோய் பரிசோதனை",
+  "Immunization Advice": "தடுப்பூசி குறித்த ஆலோசனை",
+  FSH: "FSH பரிசோதனை",
+  LH: "LH பரிசோதனை",
+  Prolactin: "புரோலாக்டின் பரிசோதனை",
+  "Semen Analysis": "விந்தணு பரிசோதனை",
+};
+
+function ta(inclusions: string[]): string[] {
+  return inclusions.map((item) => {
+    const translated = TEST_NAME_TA[item];
+    if (!translated) {
+      throw new Error(`Missing Tamil translation for test/service: "${item}"`);
+    }
+    return translated;
+  });
+}
+
+const CATEGORY = {
+  basic: { name: "Basic Health Check-up Package", local: "அடிப்படை உடல் நலப் பரிசோதனை" },
+  executiveWholeBody: { name: "Executive Whole Body Health Package", local: "முழு உடல் நலப் பரிசோதனை" },
+  masterWholeBody: { name: "Master Whole Body Health Package", local: "மாஸ்டர் முழு உடல் நலப் பரிசோதனை" },
+  diabetic: { name: "Diabetic Health Package", local: "நீரிழிவு சுகாதாரப் பரிசோதனை" },
+  penmaiNalam: { name: "Penmai Nalam Health Package (Women's Wellness)", local: "பெண்மை நலம் பரிசோதனை" },
+  seniorCitizen: { name: "Senior Citizen Health Package", local: "மூத்த குடிமக்கள் நலப் பரிசோதனை" },
+  preEmployment: { name: "Pre-Employment Health Package", local: "வேலைவாய்ப்புக்கு முந்தைய உடல்நலப் பரிசோதனை" },
+  child: { name: "Child Health Package", local: "குழந்தை உடல் நலப் பரிசோதனை" },
+  preMarital: { name: "Pre-Marital Health Package", local: "திருமணத்திற்கு முன் உடல்நலப் பரிசோதனை" },
+} as const;
+
+const TIER_LOCAL = { Bronze: "வெண்கலம்", Silver: "வெள்ளி", Gold: "தங்கம்", Male: "ஆண்", Female: "பெண்" } as const;
+
 export const healthPackagesSeed: HealthPackageSeed[] = [
-  // 1. Basic Health Checkup
+  // 1. Basic Health Check-up Package
   {
-    name: "Basic Health Checkup — Bronze",
+    name: `${CATEGORY.basic.name} — Bronze`,
     slug: "basic-checkup-bronze",
-    category: "Basic Health Checkup",
+    category: CATEGORY.basic.name,
     categoryOrder: 1,
-    localName: "அடிப்படை பரிசோதனை",
+    localName: CATEGORY.basic.local,
     tier: "Bronze",
+    tierLocal: TIER_LOCAL.Bronze,
     tierOrder: 1,
     price: 500,
     description: "A quick, essential screen covering blood sugar, cholesterol, and heart rhythm.",
@@ -38,12 +133,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Basic Health Checkup — Silver",
+    name: `${CATEGORY.basic.name} — Silver`,
     slug: "basic-checkup-silver",
-    category: "Basic Health Checkup",
+    category: CATEGORY.basic.name,
     categoryOrder: 1,
-    localName: "அடிப்படை பரிசோதனை",
+    localName: CATEGORY.basic.local,
     tier: "Silver",
+    tierLocal: TIER_LOCAL.Silver,
     tierOrder: 2,
     price: 1000,
     description: "The Bronze essentials plus liver and kidney markers for a broader first look.",
@@ -61,14 +157,15 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 2. Whole Body Health Checkup
+  // 2. Executive Whole Body Health Package
   {
-    name: "Whole Body Checkup — Bronze",
-    slug: "whole-body-checkup-bronze",
-    category: "Whole Body Health Checkup",
+    name: `${CATEGORY.executiveWholeBody.name} — Bronze`,
+    slug: "executive-whole-body-bronze",
+    category: CATEGORY.executiveWholeBody.name,
     categoryOrder: 2,
-    localName: "முழு உடல் பரிசோதனை",
+    localName: CATEGORY.executiveWholeBody.local,
     tier: "Bronze",
+    tierLocal: TIER_LOCAL.Bronze,
     tierOrder: 1,
     price: 2000,
     description: "A full-body screen with imaging — blood sugar, kidney/liver markers, chest X-ray, and an abdominal ultrasound.",
@@ -89,12 +186,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Whole Body Checkup — Silver",
-    slug: "whole-body-checkup-silver",
-    category: "Whole Body Health Checkup",
+    name: `${CATEGORY.executiveWholeBody.name} — Silver`,
+    slug: "executive-whole-body-silver",
+    category: CATEGORY.executiveWholeBody.name,
     categoryOrder: 2,
-    localName: "முழு உடல் பரிசோதனை",
+    localName: CATEGORY.executiveWholeBody.local,
     tier: "Silver",
+    tierLocal: TIER_LOCAL.Silver,
     tierOrder: 2,
     price: 3000,
     description: "Adds HbA1c and a full kidney function panel to the Bronze whole-body screen.",
@@ -116,14 +214,15 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 3. Master Whole Body Health Checkup
+  // 3. Master Whole Body Health Package
   {
-    name: "Master Whole Body Checkup — Bronze",
-    slug: "master-whole-body-checkup-bronze",
-    category: "Master Whole Body Health Checkup",
+    name: `${CATEGORY.masterWholeBody.name} — Bronze`,
+    slug: "master-whole-body-bronze",
+    category: CATEGORY.masterWholeBody.name,
     categoryOrder: 3,
-    localName: "மாஸ்டர் முழு உடல் பரிசோதனை",
+    localName: CATEGORY.masterWholeBody.local,
     tier: "Bronze",
+    tierLocal: TIER_LOCAL.Bronze,
     tierOrder: 1,
     price: 5000,
     description: "Our comprehensive master checkup entry tier — cardiac imaging, lipid profile, and dietary guidance included.",
@@ -147,12 +246,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Master Whole Body Checkup — Silver",
-    slug: "master-whole-body-checkup-silver",
-    category: "Master Whole Body Health Checkup",
+    name: `${CATEGORY.masterWholeBody.name} — Silver`,
+    slug: "master-whole-body-silver",
+    category: CATEGORY.masterWholeBody.name,
     categoryOrder: 3,
-    localName: "மாஸ்டர் முழு உடல் பரிசோதனை",
+    localName: CATEGORY.masterWholeBody.local,
     tier: "Silver",
+    tierLocal: TIER_LOCAL.Silver,
     tierOrder: 2,
     popular: true,
     price: 7500,
@@ -182,12 +282,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Master Whole Body Checkup — Gold",
-    slug: "master-whole-body-checkup-gold",
-    category: "Master Whole Body Health Checkup",
+    name: `${CATEGORY.masterWholeBody.name} — Gold`,
+    slug: "master-whole-body-gold",
+    category: CATEGORY.masterWholeBody.name,
     categoryOrder: 3,
-    localName: "மாஸ்டர் முழு உடல் பரிசோதனை",
+    localName: CATEGORY.masterWholeBody.local,
     tier: "Gold",
+    tierLocal: TIER_LOCAL.Gold,
     tierOrder: 3,
     price: 10000,
     description: "The complete master checkup — bone, joint, infection, and stress-test screening added to Silver.",
@@ -224,14 +325,15 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 4. Diabetic Health Checkup
+  // 4. Diabetic Health Package
   {
-    name: "Diabetic Checkup — Bronze",
+    name: `${CATEGORY.diabetic.name} — Bronze`,
     slug: "diabetic-checkup-bronze",
-    category: "Diabetic Health Checkup",
+    category: CATEGORY.diabetic.name,
     categoryOrder: 4,
-    localName: "நீரிழிவு சுகாதாரப் பரிசோதனை",
+    localName: CATEGORY.diabetic.local,
     tier: "Bronze",
+    tierLocal: TIER_LOCAL.Bronze,
     tierOrder: 1,
     price: 1000,
     description: "Core blood-sugar and 3-month average sugar tracking with dietary guidance.",
@@ -252,12 +354,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Diabetic Checkup — Silver",
+    name: `${CATEGORY.diabetic.name} — Silver`,
     slug: "diabetic-checkup-silver",
-    category: "Diabetic Health Checkup",
+    category: CATEGORY.diabetic.name,
     categoryOrder: 4,
-    localName: "நீரிழிவு சுகாதாரப் பரிசோதனை",
+    localName: CATEGORY.diabetic.local,
     tier: "Silver",
+    tierLocal: TIER_LOCAL.Silver,
     tierOrder: 2,
     price: 3500,
     description: "Adds kidney function, lipid profile, and cardiac imaging for existing diabetics tracking complications.",
@@ -282,14 +385,15 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 5. Penmai Nalam (Women's Wellness) Checkup
+  // 5. Penmai Nalam Health Package (Women's Wellness)
   {
-    name: "Penmai Nalam Checkup — Bronze",
-    slug: "penmai-nalam-checkup-bronze",
-    category: "Penmai Nalam (Women's Wellness) Checkup",
+    name: `${CATEGORY.penmaiNalam.name} — Bronze`,
+    slug: "penmai-nalam-bronze",
+    category: CATEGORY.penmaiNalam.name,
     categoryOrder: 5,
-    localName: "பெண்மை நலம் பரிசோதனை",
+    localName: CATEGORY.penmaiNalam.local,
     tier: "Bronze",
+    tierLocal: TIER_LOCAL.Bronze,
     tierOrder: 1,
     price: 6000,
     description: "A women's health screen covering thyroid, cervical, and breast checks alongside core diagnostics.",
@@ -319,12 +423,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Penmai Nalam Checkup — Silver",
-    slug: "penmai-nalam-checkup-silver",
-    category: "Penmai Nalam (Women's Wellness) Checkup",
+    name: `${CATEGORY.penmaiNalam.name} — Silver`,
+    slug: "penmai-nalam-silver",
+    category: CATEGORY.penmaiNalam.name,
     categoryOrder: 5,
-    localName: "பெண்மை நலம் பரிசோதனை",
+    localName: CATEGORY.penmaiNalam.local,
     tier: "Silver",
+    tierLocal: TIER_LOCAL.Silver,
     tierOrder: 2,
     popular: true,
     price: 8000,
@@ -357,12 +462,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Penmai Nalam Checkup — Gold",
-    slug: "penmai-nalam-checkup-gold",
-    category: "Penmai Nalam (Women's Wellness) Checkup",
+    name: `${CATEGORY.penmaiNalam.name} — Gold`,
+    slug: "penmai-nalam-gold",
+    category: CATEGORY.penmaiNalam.name,
     categoryOrder: 5,
-    localName: "பெண்மை நலம் பரிசோதனை",
+    localName: CATEGORY.penmaiNalam.local,
     tier: "Gold",
+    tierLocal: TIER_LOCAL.Gold,
     tierOrder: 3,
     price: 9500,
     description: "The complete women's wellness screen — bone health, vitamin levels, and infection screening included.",
@@ -399,14 +505,15 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 6. Senior Citizen Health Checkup
+  // 6. Senior Citizen Health Package
   {
-    name: "Senior Citizen Checkup — Bronze",
-    slug: "senior-citizen-checkup-bronze",
-    category: "Senior Citizen Health Checkup",
+    name: `${CATEGORY.seniorCitizen.name} — Bronze`,
+    slug: "senior-citizen-bronze",
+    category: CATEGORY.seniorCitizen.name,
     categoryOrder: 6,
-    localName: "மூத்த குடிமக்கள் நலப் பரிசோதனை",
+    localName: CATEGORY.seniorCitizen.local,
     tier: "Bronze",
+    tierLocal: TIER_LOCAL.Bronze,
     tierOrder: 1,
     price: 5000,
     description: "A checkup tailored to age-related conditions — thyroid, liver, bone, and cardiac screening.",
@@ -436,12 +543,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Senior Citizen Checkup — Silver",
-    slug: "senior-citizen-checkup-silver",
-    category: "Senior Citizen Health Checkup",
+    name: `${CATEGORY.seniorCitizen.name} — Silver`,
+    slug: "senior-citizen-silver",
+    category: CATEGORY.seniorCitizen.name,
     categoryOrder: 6,
-    localName: "மூத்த குடிமக்கள் நலப் பரிசோதனை",
+    localName: CATEGORY.seniorCitizen.local,
     tier: "Silver",
+    tierLocal: TIER_LOCAL.Silver,
     tierOrder: 2,
     popular: true,
     price: 8000,
@@ -479,13 +587,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 7. Pre-Employment Health Checkup
+  // 7. Pre-Employment Health Package
   {
-    name: "Pre-Employment Health Checkup",
+    name: CATEGORY.preEmployment.name,
     slug: "pre-employment-checkup",
-    category: "Pre-Employment Health Checkup",
+    category: CATEGORY.preEmployment.name,
     categoryOrder: 7,
-    localName: "வேலைவாய்ப்புக்கு முந்தைய உடல்நலப் பரிசோதனை",
+    localName: CATEGORY.preEmployment.local,
     tierOrder: 1,
     price: 2000,
     description: "The standard fitness-for-employment screen, including liver enzymes and infectious disease markers.",
@@ -511,13 +619,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 8. Child Health Checkup
+  // 8. Child Health Package
   {
-    name: "Child Health Checkup",
+    name: CATEGORY.child.name,
     slug: "child-health-checkup",
-    category: "Child Health Checkup",
+    category: CATEGORY.child.name,
     categoryOrder: 8,
-    localName: "குழந்தை உடல் நலப் பரிசோதனை",
+    localName: CATEGORY.child.local,
     tierOrder: 1,
     price: 750,
     description: "A gentle general health screen for children, including TB screening and vaccination guidance.",
@@ -535,14 +643,15 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
 
-  // 9. Pre-Marital Health Checkup
+  // 9. Pre-Marital Health Package
   {
-    name: "Pre-Marital Health Checkup — Male",
+    name: `${CATEGORY.preMarital.name} — Male`,
     slug: "pre-marital-checkup-male",
-    category: "Pre-Marital Health Checkup",
+    category: CATEGORY.preMarital.name,
     categoryOrder: 9,
-    localName: "திருமணத்திற்கு முன் உடல்நலப் பரிசோதனை",
+    localName: CATEGORY.preMarital.local,
     tier: "Male",
+    tierLocal: TIER_LOCAL.Male,
     tierOrder: 1,
     price: 5000,
     description: "A pre-marital screen covering fertility, infectious disease, and general health markers for men.",
@@ -566,12 +675,13 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     status: ContentStatus.PUBLISHED,
   },
   {
-    name: "Pre-Marital Health Checkup — Female",
+    name: `${CATEGORY.preMarital.name} — Female`,
     slug: "pre-marital-checkup-female",
-    category: "Pre-Marital Health Checkup",
+    category: CATEGORY.preMarital.name,
     categoryOrder: 9,
-    localName: "திருமணத்திற்கு முன் உடல்நலப் பரிசோதனை",
+    localName: CATEGORY.preMarital.local,
     tier: "Female",
+    tierLocal: TIER_LOCAL.Female,
     tierOrder: 2,
     price: 5500,
     description: "A pre-marital screen covering fertility hormones, infectious disease, and general health markers for women.",
@@ -598,4 +708,4 @@ export const healthPackagesSeed: HealthPackageSeed[] = [
     idealFor: ["Women planning marriage"],
     status: ContentStatus.PUBLISHED,
   },
-];
+].map((pkg) => ({ ...pkg, inclusionsLocal: ta(pkg.inclusions) }));

@@ -8,16 +8,20 @@ export interface IHealthPackage extends Document {
   slug: string;
   category: string;
   categoryOrder: number;
-  /** Local-language name shown as a subtitle, e.g. Tamil for a Madurai-based hospital. */
+  /** Tamil name of the category, shown as a subtitle (this hospital is in Madurai, Tamil Nadu). */
   localName?: string;
   /** Tier label distinguishing packages within the same category (Bronze/Silver/Gold, Male/Female, etc). Omit for single-tier categories. */
   tier?: string;
+  /** Tamil equivalent of `tier` (வெண்கலம்/வெள்ளி/தங்கம்/ஆண்/பெண்). */
+  tierLocal?: string;
   tierOrder: number;
   popular: boolean;
   price: number;
   discountedPrice?: number;
   description: string;
   inclusions: string[];
+  /** Tamil translation of `inclusions`, same length and index order. */
+  inclusionsLocal?: string[];
   idealFor: string[];
   image?: string;
   status: ContentStatus;
@@ -34,12 +38,14 @@ const HealthPackageSchema = new Schema<IHealthPackage>(
     categoryOrder: { type: Number, default: 0 },
     localName: { type: String, trim: true },
     tier: { type: String, trim: true },
+    tierLocal: { type: String, trim: true },
     tierOrder: { type: Number, default: 0 },
     popular: { type: Boolean, default: false },
     price: { type: Number, required: true, min: 0 },
     discountedPrice: { type: Number, min: 0 },
     description: { type: String, required: true },
     inclusions: [{ type: String, trim: true }],
+    inclusionsLocal: [{ type: String, trim: true }],
     idealFor: [{ type: String, trim: true }],
     image: { type: String },
     status: {
