@@ -3,7 +3,11 @@ import path from "path";
 import fs from "fs";
 import { env } from "../config/env";
 
-const uploadRoot = path.join(process.cwd(), env.uploadDir);
+// Serverless filesystems are read-only apart from /tmp, so uploads land there
+// when running on Vercel. Note that /tmp is per-instance and not durable.
+const uploadRoot = process.env.VERCEL
+  ? path.join("/tmp", env.uploadDir)
+  : path.join(process.cwd(), env.uploadDir);
 if (!fs.existsSync(uploadRoot)) {
   fs.mkdirSync(uploadRoot, { recursive: true });
 }

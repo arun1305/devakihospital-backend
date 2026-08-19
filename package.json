@@ -2,11 +2,11 @@
   "name": "devakihospital-backend",
   "version": "1.0.0",
   "description": "Devaki Speciality Hospital - Backend API",
-  "main": "dist/server.js",
+  "main": "dist/src/server.js",
   "scripts": {
     "dev": "nodemon --exec ts-node src/server.ts",
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
+    "start": "node dist/src/server.js",
     "seed": "ts-node src/seed/seed.ts",
     "lint": "eslint .",
     "format": "prettier --write .",

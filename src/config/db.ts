@@ -4,6 +4,8 @@ import { env } from "./env";
 mongoose.set("strictQuery", true);
 
 export async function connectDB(): Promise<void> {
+  if (mongoose.connection.readyState === 1) return;
+
   mongoose.connection.on("connected", () => {
     console.log("[db] MongoDB connected");
   });
