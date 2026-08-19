@@ -7,6 +7,13 @@ export interface IHealthPackage extends Document {
   name: string;
   slug: string;
   category: string;
+  categoryOrder: number;
+  /** Local-language name shown as a subtitle, e.g. Tamil for a Madurai-based hospital. */
+  localName?: string;
+  /** Tier label distinguishing packages within the same category (Bronze/Silver/Gold, Male/Female, etc). Omit for single-tier categories. */
+  tier?: string;
+  tierOrder: number;
+  popular: boolean;
   price: number;
   discountedPrice?: number;
   description: string;
@@ -24,6 +31,11 @@ const HealthPackageSchema = new Schema<IHealthPackage>(
     name: { type: String, required: true, trim: true },
     slug: { type: String, required: true, unique: true, lowercase: true, index: true },
     category: { type: String, required: true, trim: true },
+    categoryOrder: { type: Number, default: 0 },
+    localName: { type: String, trim: true },
+    tier: { type: String, trim: true },
+    tierOrder: { type: Number, default: 0 },
+    popular: { type: Boolean, default: false },
     price: { type: Number, required: true, min: 0 },
     discountedPrice: { type: Number, min: 0 },
     description: { type: String, required: true },
@@ -39,6 +51,8 @@ const HealthPackageSchema = new Schema<IHealthPackage>(
   },
   { timestamps: true }
 );
+
+HealthPackageSchema.index({ category: 1, categoryOrder: 1, tierOrder: 1 });
 
 export const HealthPackage = model<IHealthPackage>("HealthPackage", HealthPackageSchema);
 

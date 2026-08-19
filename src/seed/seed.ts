@@ -3,8 +3,10 @@ import { User } from "../models/User";
 import { Department } from "../models/Department";
 import { Doctor } from "../models/Doctor";
 import { Testimonial } from "../models/Testimonial";
+import { HealthPackage } from "../models/Package";
 import { InsurancePartner, Accreditation, Award } from "../models/Misc";
 import { UserRole, Gender } from "../types/enums";
+import { healthPackagesSeed } from "./data/healthPackages.data";
 import mongoose from "mongoose";
 
 const departmentSeed = [
@@ -131,6 +133,7 @@ async function seed() {
     Department.deleteMany({}),
     Doctor.deleteMany({}),
     Testimonial.deleteMany({}),
+    HealthPackage.deleteMany({}),
     InsurancePartner.deleteMany({}),
     Accreditation.deleteMany({}),
     Award.deleteMany({}),
@@ -168,6 +171,8 @@ async function seed() {
       featured: true,
     },
   ]);
+
+  await HealthPackage.insertMany(healthPackagesSeed);
 
   await InsurancePartner.insertMany([
     { name: "Star Health", logo: "/placeholders/insurance-star.svg", order: 1 },
